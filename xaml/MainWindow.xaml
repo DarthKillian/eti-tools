@@ -18,6 +18,7 @@
                 <Label Foreground="#ffffff" Content="Select Adapter" VerticalAlignment="Center" Padding="15,0,0,0"/>
                 <ListBox x:Name="selectAdapter" Margin="5,0,0,0" Width="200" Height="Auto" MaxHeight="40" >
                 </ListBox>
+                <Button x:Name="reload">Click Me</Button>
             </StackPanel>
         </Grid>
         

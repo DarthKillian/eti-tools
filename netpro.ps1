@@ -16,20 +16,28 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 $selectAdapter = $window.FindName("selectAdapter")
 $dhcpOption = $window.FindName("dhcpOption")
 $staticOption = $window.FindName("staticOption")
+$reloadBtn = $window.FindName("reload")
 
 # Get all physiscal adpaters
-$adapters = Get-NetAdapter -Physical
-$intIndex
-
 # Now iterate through them and only get the adapters that are up then assign them to the adapter select box
-foreach ($adapter in $adapters) {
-   if ($adapter.status -eq "Up") {
-      $adapter | ForEach-Object { $selectAdapter.Items.Add($_.Name) } | Out-Null
+function checkAdapters () {
+   $selectAdapter.Items.Clear()
+   foreach ($adapter in Get-NetAdapter -Physical) {
+      if ($adapter.status -eq "Up") {
+         $adapter | ForEach-Object { $selectAdapter.Items.Add($_.Name) } | Out-Null
+      }
    }
+
+   # Select the first adapter in the list and focus it
+   $selectAdapter.SelectedIndex = 0
+   $selectAdapter.Focus() | Out-Null
 }
+
+checkAdapters # Run the checkAdapters function
 
 # Get index of selected interface to be used to query interface settings
 function getAdapterIndex ($interface) {
+   # Write-Host Inside getAdapterIndex
    $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
    return $intIndex.interfaceindex
 }
@@ -38,7 +46,8 @@ function getAdapterDetails ($interface) {
    # do the get-wmiobject cool stuff here and return
 }
 
-<# function checkMode ($interface) {
+function checkMode ($interface) {
+   # Write-Host Inside checkMode
    $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
    if ($mode.dhcp -eq "Enabled") {
       $dhcpOption.IsChecked = $true
@@ -46,19 +55,18 @@ function getAdapterDetails ($interface) {
    else {
       $staticOption.IsChecked = $true
    }
-} #>
+}
 
-# Select the first adapter in the list and focus it
-$selectAdapter.SelectedIndex = 0
-$selectAdapter.Focus() | Out-Null
-# checkMode $selectAdapter.SelectedItem
-
-$intIndex =  getAdapterIndex $selectAdapter.SelectedItem
-
+$intIndex = getAdapterIndex $selectAdapter.SelectedItem
 $interface = getAdapterDetails $intIndex
 
-$selectAdapter.Add_SelectionChanged({ 
-      checkMode $selectAdapter.SelectedItem
+# Listen for selectAdapter selection change event.
+$selectAdapter.Add_SelectionChanged({
+      if ($selectAdapter.Items.Count -ne 0) {
+         checkMode $selectAdapter.SelectedItem
+      }
    })
+
+$reloadBtn.Add_Click({checkAdapters})
 
 $window.ShowDialog() | Out-Null
