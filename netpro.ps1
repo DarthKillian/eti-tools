@@ -18,6 +18,9 @@ $dhcpOption = $window.FindName("dhcpOption")
 $staticOption = $window.FindName("staticOption")
 $reloadBtn = $window.FindName("reload")
 
+# Get text boxes
+$ipaddressTxt = $window.FindName("ipaddress")
+
 # Get all physiscal adpaters
 # Now iterate through them and only get the adapters that are up then assign them to the adapter select box
 function checkAdapters () {
@@ -34,17 +37,11 @@ function checkAdapters () {
    $selectAdapter.Focus() | Out-Null
 }
 
-checkAdapters # Run the checkAdapters function
-
-# Get index of selected interface to be used to query interface settings
-function getAdapterIndex ($interface) {
-   # Write-Host Inside getAdapterIndex
-   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
-   return $intIndex.interfaceindex
-}
-
 function getAdapterDetails ($interface) {
-   # do the get-wmiobject cool stuff here and return
+   # Get index of selected interface to be used to query interface settings
+   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
+   $intDetails = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object interfaceindex -eq $intIndex.interfaceindex | Select-Object ipaddress, ipsubnet, defaultipgateway
+   return $intDetails
 }
 
 # Check if the adapter mode is dhcp or static
@@ -53,14 +50,12 @@ function checkMode ($interface) {
    $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
    if ($mode.dhcp -eq "Enabled") {
       $dhcpOption.IsChecked = $true
+      $ipaddressTxt.IsReadOnly = $true
    }
    else {
       $staticOption.IsChecked = $true
    }
 }
-
-$intIndex = getAdapterIndex $selectAdapter.SelectedItem
-$interface = getAdapterDetails $intIndex
 
 # Listen for selectAdapter selection change event.
 $selectAdapter.Add_SelectionChanged({
@@ -70,5 +65,6 @@ $selectAdapter.Add_SelectionChanged({
    })
 
 $reloadBtn.Add_Click({checkAdapters})
+checkAdapters # Run the checkAdapters function
 
 $window.ShowDialog() | Out-Null
