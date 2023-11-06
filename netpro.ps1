@@ -21,6 +21,7 @@ $reloadBtn = $window.FindName("reload")
 # Get all physiscal adpaters
 # Now iterate through them and only get the adapters that are up then assign them to the adapter select box
 function checkAdapters () {
+   # Clear the listbox when the reload button gets clicked and to make sure nothing funky exists before enumerating our items
    $selectAdapter.Items.Clear()
    foreach ($adapter in Get-NetAdapter -Physical) {
       if ($adapter.status -eq "Up") {
@@ -46,6 +47,7 @@ function getAdapterDetails ($interface) {
    # do the get-wmiobject cool stuff here and return
 }
 
+# Check if the adapter mode is dhcp or static
 function checkMode ($interface) {
    # Write-Host Inside checkMode
    $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
