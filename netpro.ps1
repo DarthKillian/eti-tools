@@ -1,5 +1,10 @@
 ﻿Add-Type -AssemblyName PresentationFramework
 
+# Load dependencies
+$dependencyPath = "$($pwd)\Dependencies"
+Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName }
+
+
 # Set xaml path for window
 $xamlPath = "$($pwd)\xaml\MainWindow.xaml"
 
@@ -17,53 +22,48 @@ $selectAdapter = $window.FindName("selectAdapter")
 $dhcpOption = $window.FindName("dhcpOption")
 $staticOption = $window.FindName("staticOption")
 $reloadBtn = $window.FindName("reload")
+$staticButtons = $window.FindName("staticButtons")
+$adapterOptions = $window.FindName("adapterOptions")
+$noAdapters = $window.findName("noAdapters")
 
 # Get text boxes
 $ipaddressTxt = $window.FindName("ipaddress")
+$subnetMaskTxt = $window.FindName("subnet_mask")
+$gatewayTxt = $window.FindName("gateway")
+$dnsTxt = $window.FindName("dns")
 
-# Get all physiscal adpaters
-# Now iterate through them and only get the adapters that are up then assign them to the adapter select box
-function checkAdapters () {
-   # Clear the listbox when the reload button gets clicked and to make sure nothing funky exists before enumerating our items
-   $selectAdapter.Items.Clear()
-   foreach ($adapter in Get-NetAdapter -Physical) {
-      if ($adapter.status -eq "Up") {
-         $adapter | ForEach-Object { $selectAdapter.Items.Add($_.Name) } | Out-Null
-      }
-   }
-
-   # Select the first adapter in the list and focus it
-   $selectAdapter.SelectedIndex = 0
-   $selectAdapter.Focus() | Out-Null
-}
-
-function getAdapterDetails ($interface) {
-   # Get index of selected interface to be used to query interface settings
-   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
-   $intDetails = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object interfaceindex -eq $intIndex.interfaceindex | Select-Object ipaddress, ipsubnet, defaultipgateway
-   return $intDetails
-}
-
-# Check if the adapter mode is dhcp or static
-function checkMode ($interface) {
-   # Write-Host Inside checkMode
-   $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
-   if ($mode.dhcp -eq "Enabled") {
-      $dhcpOption.IsChecked = $true
-      $ipaddressTxt.IsReadOnly = $true
-   }
-   else {
-      $staticOption.IsChecked = $true
-   }
-}
+if ($selectAdapter.Items.Count -ne 0) {
+   $noAdapters.Visibility = "Hidden"
+   $adapterOptions.Visibility = "Visible"
+} else {
+   $noAdapters.Visibility = "Visible"
+   $adapterOptions.Visibility = "Hidden"
+}5
 
 # Listen for selectAdapter selection change event.
 $selectAdapter.Add_SelectionChanged({
       if ($selectAdapter.Items.Count -ne 0) {
          checkMode $selectAdapter.SelectedItem
+         getAdapterDetails $selectAdapter.SelectedItem
+         $noAdapters.Visibility = "Hidden"
+         $adapterOptions.Visibility = "Visible"
+      } else {
+         $noAdapters.Visibility = "Visible"
+         $adapterOptions.Visibility = "Hidden"
       }
-   })
+})
 
+$dhcpOption.Add_Click({
+   setMode $selectAdapter.SelectedItem "DHCP"
+   $staticButtons.Visibility = "Hidden"
+})
+
+$staticOption.Add_Click({
+   setMode $selectAdapter.SelectedItem "STATIC"
+   $staticButtons.Visibility = "Visible"
+})
+
+# Reload the adapters after reload button click
 $reloadBtn.Add_Click({checkAdapters})
 checkAdapters # Run the checkAdapters function
 

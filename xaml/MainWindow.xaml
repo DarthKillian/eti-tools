@@ -6,7 +6,6 @@
     Title = "NetPro">
 
     <Grid>
-    
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
@@ -27,8 +26,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            
-            <Grid Grid.Column="0" Margin="10,10,5,10">
+            <Grid x:Name="adapterOptions" Grid.Column="0" Margin="10,10,5,10" Visibility="Visible">
                 <StackPanel HorizontalAlignment="Center">
                     <Label Content="Properties" Foreground="#ffffff" />
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
@@ -53,13 +51,13 @@
                                     <Label Foreground="#ffffff">IP Address</Label>
                                 </Grid>
                                 <Grid Grid.Row="1">
-                                    <Label Foreground="#ffffff">Subnet Mask</Label>
+                                    <Label Foreground="#ffffff" Margin="0,2,0,0">Subnet Mask</Label>
                                 </Grid>
                                 <Grid Grid.Row="2">
-                                    <Label Foreground="#ffffff">Gateway</Label>
+                                    <Label Foreground="#ffffff" Margin="0,2,0,0">Gateway</Label>
                                 </Grid>
                                 <Grid Grid.Row="3">
-                                    <Label Foreground="#ffffff">DNS</Label>
+                                    <Label Foreground="#ffffff" Margin="0,5,0,0">DNS</Label>
                                 </Grid>
                             </StackPanel>
                         </Grid>
@@ -69,24 +67,43 @@
                                     <TextBox x:Name="ipaddress" Width="100" Margin="0,5,0,0"></TextBox>
                                 </Grid>
                                 <Grid Grid.Row="1">
-                                    <TextBox x:Name="subnet_mask" Width="100" Margin="0,5,0,0"></TextBox>
+                                    <TextBox x:Name="subnet_mask" Width="100" Margin="0,10,0,0"></TextBox>
                                 </Grid>
                                 <Grid Grid.Row="2">
-                                    <TextBox x:Name="gateway" Width="100" Margin="0,5,0,0"></TextBox>
+                                    <TextBox x:Name="gateway" Width="100" Margin="0,10,0,0"></TextBox>
                                 </Grid>
                                 <Grid Grid.Row="3">
-                                    <TextBox x:Name="dns" Width="100" Margin="0,5,0,0"></TextBox>
+                                    <TextBox x:Name="dns" Width="100" Margin="0,10,0,0"></TextBox>
                                 </Grid>
                             </StackPanel>
                         </Grid>
                     </Grid>
+                    <StackPanel Visibility="Hidden" HorizontalAlignment="Center" Orientation="Horizontal" x:Name="staticButtons" Margin="0,10,0,0">
+                        <Button Width="100">Save</Button>
+                        <Button Width="100">Add IP Address</Button>
+                    </StackPanel>
                 </StackPanel>
+                
             </Grid>
             
             <Grid Grid.Column="1" Margin="5,10,10,10">
-                <StackPanel HorizontalAlignment="Center">
-                    <Label Content="Status" Foreground="#ffffff"/>
-                </StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"></RowDefinition>
+                        <RowDefinition Height="*"></RowDefinition>
+                    </Grid.RowDefinitions>
+                </Grid>
+                <Grid Grid.Row="0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Label Foreground="#ffffff">Status</Label>
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBox x:Name="noAdapters" Visibility="Hidden" IsReadOnly="True" BorderThickness="0" TextWrapping="WrapWithOverflow" Height="100" Background="#57697f" Foreground="#ffffff">No adapters connected. Please connect an adapter and click the "Refresh Adapters" button</TextBox>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                <Grid Grid.Row="1">
+                    
+                </Grid>
             </Grid>
         </Grid>
         
