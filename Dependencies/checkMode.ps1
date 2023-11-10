@@ -8,6 +8,7 @@ function checkMode ($interface) {
        $subnetMaskTxt.IsReadOnly = $true
        $gatewayTxt.IsReadOnly = $true
        $dnsTxt.IsReadOnly = $true
+       $staticButtons.Visibility = "Hidden"
     }
     else {
        $staticOption.IsChecked = $true
@@ -17,6 +18,5 @@ function checkMode ($interface) {
        $gatewayTxt.IsReadOnly = $false
        $dnsTxt.IsReadOnly = $false
        $staticButtons.Visibility = "Visible"
-
     }
  }

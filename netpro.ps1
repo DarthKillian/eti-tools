@@ -25,6 +25,8 @@ $reloadBtn = $window.FindName("reload")
 $staticButtons = $window.FindName("staticButtons")
 $adapterOptions = $window.FindName("adapterOptions")
 $noAdapters = $window.findName("noAdapters")
+$saveStaticBtn = $window.findName("saveStaticBtn")
+$addNewIPBtn = $window.FindName("newIPBtn")
 
 # Get text boxes
 $ipaddressTxt = $window.FindName("ipaddress")
@@ -38,7 +40,7 @@ if ($selectAdapter.Items.Count -ne 0) {
 } else {
    $noAdapters.Visibility = "Visible"
    $adapterOptions.Visibility = "Hidden"
-}5
+}
 
 # Listen for selectAdapter selection change event.
 $selectAdapter.Add_SelectionChanged({
@@ -61,6 +63,10 @@ $dhcpOption.Add_Click({
 $staticOption.Add_Click({
    setMode $selectAdapter.SelectedItem "STATIC"
    $staticButtons.Visibility = "Visible"
+})
+
+$saveStaticBtn.Add_Click({
+   setStaticIP $selectAdapter.SelectedItem $ipaddressTxt.Text $subnetMaskTxt.Text $gatewayTxt.Text $dnsTxt.Text
 })
 
 # Reload the adapters after reload button click
