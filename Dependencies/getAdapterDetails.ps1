@@ -5,10 +5,11 @@ function getAdapterDetails ($interface) {
     
     # If the program closes before a static ip is set, it will pull ipv6 or 169.x.x.x
     # If this is the case, set the adapter back to dhcp. This is currently a bit bugged.
-    #It won't populate the text boxes with the correct DHCP address but if you refresh the adapters, it reloads the data correctly.
+    # It won't populate the text boxes with the correct DHCP address but if you refresh the adapters, it reloads the data correctly.
     if (($intDetails.ipaddress[0]) -Match "169" -or ($intDetails.ipaddress[0]) -Match "fe80") {
         setMode $selectAdapter.SelectedItem "DHCP"
-        checkAdapters
+        
+        # checkAdapters
     } else {
         $ipaddressTxt.Text = $intDetails.ipaddress[0]
         $subnetMaskTxt.Text = $intDetails.ipsubnet[0]

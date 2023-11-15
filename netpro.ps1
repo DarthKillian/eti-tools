@@ -2,8 +2,7 @@
 
 # Load dependencies
 $dependencyPath = "$($pwd)\Dependencies"
-Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName }
-
+# Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName }
 
 # Set xaml path for window
 $xamlPath = "$($pwd)\xaml\MainWindow.xaml"
@@ -34,10 +33,151 @@ $subnetMaskTxt = $window.FindName("subnet_mask")
 $gatewayTxt = $window.FindName("gateway")
 $dnsTxt = $window.FindName("dns")
 
+# Check if the adapter mode is dhcp or static
+function checkMode ($interface) {
+   # Write-Host Inside checkMode
+   $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
+   if ($mode.dhcp -eq "Enabled") {
+      $dhcpOption.IsChecked = $true
+      $ipaddressTxt.IsReadOnly = $true
+      $subnetMaskTxt.IsReadOnly = $true
+      $gatewayTxt.IsReadOnly = $true
+      $dnsTxt.IsReadOnly = $true
+      $staticButtons.Visibility = "Hidden"
+   }
+   else {
+      $staticOption.IsChecked = $true
+      $dhcpOption.IsChecked = $false
+      $ipaddressTxt.IsReadOnly = $false
+      $subnetMaskTxt.IsReadOnly = $false
+      $gatewayTxt.IsReadOnly = $false
+      $dnsTxt.IsReadOnly = $false
+      $staticButtons.Visibility = "Visible"
+   }
+}
+
+# Get all physiscal adpaters
+# Now iterate through them and only get the adapters that are up then assign them to the adapter select box
+function checkAdapters () {
+   # Clear the listbox to make sure nothing funky exists before enumerating our items
+   $selectAdapter.Items.Clear()
+   foreach ($adapter in get-wmiobject win32_networkadapter -filter "netconnectionstatus = 2" | Select-Object netconnectionid) {
+      $adapter | ForEach-Object { $selectAdapter.Items.Add($_.netconnectionid) } | Out-Null
+   }
+
+   # Select the first adapter in the list and focus it
+   $selectAdapter.SelectedIndex = 0
+   $selectAdapter.Focus() | Out-Null
+}
+
+function getAdapterDetails ($interface) {
+   # Get index of selected interface to be used to query interface settings
+   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
+   $intDetails = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object interfaceindex -eq $intIndex.interfaceindex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
+   
+   $ipaddressTxt.Text = $intDetails.ipaddress[0]
+   $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
+   if ($intDetails.defaultipgateway.count -ne 0) {
+      $gatewayTxt.Text = $intDetails.defaultipgateway[0]
+   }
+   else {
+      $gatewayTxt.Clear()
+   }
+   if ($intDetails.dnsserversearchorder.count -ne 0) {
+      $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
+   }
+   else {
+      $dnsTxt.Clear()
+   }
+}
+
+$ButtonType = [System.Windows.MessageBoxButton]::Ok
+
+function setStaticIP {
+   Param($interface, $ip, $subnet, $gateway, $dns)
+
+   if ($ip -and $subnet) {
+      try {
+         [ipaddress] $ip | Out-Null
+         [ipaddress] $subnet | Out-Null
+      }
+      catch {
+         $message = "Invalid IP or Subnet Mask"
+      }
+
+      $ipCmd = "netsh int ip set address $interface static $ip $subnet"
+
+   }
+   else {
+      $message = "IP Address and Subnet Mask are required"
+   }
+   # If a gateway is provided, set the gateway
+   if ($gateway) {
+      try {
+         [ipaddress] $gateway | Out-Null
+         $ipCmd = $ipCmd + " $gateway"
+      }
+      catch {
+         $message = "Invalid gateway"
+         [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
+      }
+   }
+   else {
+      $ipCmd = "netsh int ip set address $interface static $ip $subnet"
+   }
+   # Set Static IP
+   & cmd.exe /c $ipCmd
+   if ($LASTEXITCODE -ne 0) {
+      [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
+   }
+    
+   if ($dns) {
+      try {
+         [ipaddress] $dns | Out-Null
+         & cmd.exe /c "netsh int ipv4 set dnsservers $interface static $dns primary"
+      }
+      catch {
+         $message = "Invalid DNS"
+         [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
+      }
+   }
+   else {
+      & cmd.exe /c "netsh int ipv4 delete dnsservers $interface all"
+   }
+}
+
+function setMode($interface, $mode) {
+   if ($mode -eq "STATIC") {
+      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Disabled
+      $dhcpOption.IsChecked = $false
+      $ipaddressTxt.IsReadOnly = $false
+      $subnetMaskTxt.IsReadOnly = $false
+      $gatewayTxt.IsReadOnly = $false
+      $dnsTxt.IsReadOnly = $false
+      $ipaddressTxt.Clear()
+      $subnetMaskTxt.Clear()
+      $gatewayTxt.Clear()
+      $dnsTxt.Clear()
+      $subnetMaskTxt.Text = "255.255.255.0"
+   }
+
+   if ($mode -eq "DHCP") {
+      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Enabled
+      # The checkmode does this already but it hangs the script trying to check the mode so for now, I'm manually setting these here
+      $dhcpOption.IsChecked = $true
+      $ipaddressTxt.IsReadOnly = $true
+      $subnetMaskTxt.IsReadOnly = $true
+      $gatewayTxt.IsReadOnly = $true
+      $dnsTxt.IsReadOnly = $true
+      getAdapterDetails $interface
+   }
+}
+
 if ($selectAdapter.Items.Count -ne 0) {
    $noAdapters.Visibility = "Hidden"
    $adapterOptions.Visibility = "Visible"
-} else {
+}
+else {
    $noAdapters.Visibility = "Visible"
    $adapterOptions.Visibility = "Hidden"
 }
@@ -49,28 +189,29 @@ $selectAdapter.Add_SelectionChanged({
          getAdapterDetails $selectAdapter.SelectedItem
          $noAdapters.Visibility = "Hidden"
          $adapterOptions.Visibility = "Visible"
-      } else {
+      }
+      else {
          $noAdapters.Visibility = "Visible"
          $adapterOptions.Visibility = "Hidden"
       }
-})
+   })
 
 $dhcpOption.Add_Click({
-   setMode $selectAdapter.SelectedItem "DHCP"
-   $staticButtons.Visibility = "Hidden"
-})
+      setMode $selectAdapter.SelectedItem "DHCP"
+      $staticButtons.Visibility = "Hidden"
+   })
 
 $staticOption.Add_Click({
-   setMode $selectAdapter.SelectedItem "STATIC"
-   $staticButtons.Visibility = "Visible"
-})
+      setMode $selectAdapter.SelectedItem "STATIC"
+      $staticButtons.Visibility = "Visible"
+   })
 
 $saveStaticBtn.Add_Click({
-   setStaticIP $selectAdapter.SelectedItem $ipaddressTxt.Text $subnetMaskTxt.Text $gatewayTxt.Text $dnsTxt.Text
-})
+      setStaticIP $selectAdapter.SelectedItem $ipaddressTxt.Text $subnetMaskTxt.Text $gatewayTxt.Text $dnsTxt.Text
+   })
 
 # Reload the adapters after reload button click
-$reloadBtn.Add_Click({checkAdapters})
+$reloadBtn.Add_Click({ checkAdapters })
 checkAdapters # Run the checkAdapters function
 
 $window.ShowDialog() | Out-Null
