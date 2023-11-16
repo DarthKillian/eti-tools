@@ -70,6 +70,7 @@ function checkAdapters () {
    $selectAdapter.Focus() | Out-Null
 }
 
+# Get details of the adapters
 function getAdapterDetails ($interface) {
    # Get index of selected interface to be used to query interface settings
    $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
@@ -105,7 +106,7 @@ function setStaticIP {
          $message = "Invalid IP or Subnet Mask"
       }
 
-      $ipCmd = "netsh int ip set address $interface static $ip $subnet"
+      $ipCmd = netsh int ip set address "$($interface)" static $ip $subnet
 
    }
    else {
@@ -115,7 +116,7 @@ function setStaticIP {
    if ($gateway) {
       try {
          [ipaddress] $gateway | Out-Null
-         $ipCmd = $ipCmd + " $gateway"
+         $ipCmd = netsh int ip set address "$($interface)" static $ip $subnet $gateway
       }
       catch {
          $message = "Invalid gateway"
@@ -123,18 +124,20 @@ function setStaticIP {
       }
    }
    else {
-      $ipCmd = "netsh int ip set address $interface static $ip $subnet"
+      $ipCmd = netsh int ipv4 set address "$($interface)" static $ip $subnet
    }
+   Write-Host $ipCmd
+
    # Set Static IP
    & cmd.exe /c $ipCmd
    if ($LASTEXITCODE -ne 0) {
-      [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
+      [System.Windows.MessageBox]::Show("There was an error setting the IP address on $interface. Please report this bug.", "Warning", $ButtonType)
    }
     
    if ($dns) {
       try {
          [ipaddress] $dns | Out-Null
-         & cmd.exe /c "netsh int ipv4 set dnsservers $interface static $dns primary"
+         & cmd.exe /c netsh int ipv4 set dnsservers "$($interface)" static $dns primary
       }
       catch {
          $message = "Invalid DNS"
@@ -142,7 +145,7 @@ function setStaticIP {
       }
    }
    else {
-      & cmd.exe /c "netsh int ipv4 delete dnsservers $interface all"
+      & cmd.exe /c netsh int ipv4 delete dnsservers "$($interface)" all
    }
 }
 
