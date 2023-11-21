@@ -1,8 +1,8 @@
 ﻿Add-Type -AssemblyName PresentationFramework
 
 # Load dependencies
-$dependencyPath = "$($pwd)\Dependencies"
-# Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName }
+<# $dependencyPath = "$($pwd)\Dependencies"
+Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName } #>
 
 # Set xaml path for window
 $xamlPath = "$($pwd)\xaml\MainWindow.xaml"
@@ -25,7 +25,7 @@ $staticButtons = $window.FindName("staticButtons")
 $adapterOptions = $window.FindName("adapterOptions")
 $noAdapters = $window.findName("noAdapters")
 $saveStaticBtn = $window.findName("saveStaticBtn")
-$addNewIPBtn = $window.FindName("newIPBtn")
+$addNewIPBtn = $window.FindName("addNewIPBtn")
 
 # Get text boxes
 $ipaddressTxt = $window.FindName("ipaddress")
@@ -126,7 +126,6 @@ function setStaticIP {
    else {
       $ipCmd = netsh int ipv4 set address "$($interface)" static $ip $subnet
    }
-   Write-Host $ipCmd
 
    # Set Static IP
    & cmd.exe /c $ipCmd
@@ -211,6 +210,10 @@ $staticOption.Add_Click({
 
 $saveStaticBtn.Add_Click({
       setStaticIP $selectAdapter.SelectedItem $ipaddressTxt.Text $subnetMaskTxt.Text $gatewayTxt.Text $dnsTxt.Text
+   })
+# $addIP = . ".\Dependencies\addIP.ps1"
+$addNewIPBtn.Add_Click({
+   . '.\Dependencies\addIP.ps1'
    })
 
 # Reload the adapters after reload button click
