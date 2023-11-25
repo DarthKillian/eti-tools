@@ -62,7 +62,11 @@ function checkAdapters () {
    # Clear the listbox to make sure nothing funky exists before enumerating our items
    $selectAdapter.Items.Clear()
    foreach ($adapter in get-wmiobject win32_networkadapter -filter "netconnectionstatus = 2" | Select-Object netconnectionid) {
-      $adapter | ForEach-Object { $selectAdapter.Items.Add($_.netconnectionid) } | Out-Null
+      # Check if adapter is not wi-fi. There's no reason to include the Wi-Fi adapter in the list usually.
+      # I may add an option to include it in the future if the need arises
+      if ($adapter.netconnectionid -ne "Wi-Fi") {
+         $adapter | ForEach-Object { $selectAdapter.Items.Add($_.netconnectionid) } | Out-Null
+      }
    }
 
    # Select the first adapter in the list and focus it
