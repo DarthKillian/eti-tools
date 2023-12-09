@@ -11,7 +11,7 @@ Built on Powershell. UI is made using Xaml.
 This tool will only select adapters that are connected and physical. It will not include Wi-Fi.
 ## Installation
 
-To install, download the latest install.exe from https://github.com/DarthKillian/eti-tools/releases/latest/download/install.exe
+To install, download the latest install.exe from https://github.com/DarthKillian/eti-tools/releases/latest/download/install.bat
 
 Run the install.exe in you Downloads folder. This will likely trigger Microsoft's anti-virus and ask you to confirm.
 
