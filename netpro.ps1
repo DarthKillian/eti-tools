@@ -61,17 +61,25 @@ function checkMode ($interface) {
 function checkAdapters () {
    # Clear the listbox to make sure nothing funky exists before enumerating our items
    $selectAdapter.Items.Clear()
-   foreach ($adapter in get-wmiobject win32_networkadapter -filter "netconnectionstatus = 2" | Select-Object netconnectionid) {
-      # Check if adapter is not wi-fi. There's no reason to include the Wi-Fi adapter in the list usually.
-      # I may add an option to include it in the future if the need arises
-      if ($adapter.netconnectionid -ne "Wi-Fi") {
-         $adapter | ForEach-Object { $selectAdapter.Items.Add($_.netconnectionid) } | Out-Null
-      }
-   }
 
-   # Select the first adapter in the list and focus it
-   $selectAdapter.SelectedIndex = 0
-   $selectAdapter.Focus() | Out-Null
+   try {
+      # Query the adapters filtering on connected and no WiFi adapters
+      $adapters = Get-CimInstance -Classname Win32_NetworkAdapter -Filter "NetConnectionStatus = 2" | Where-Object {$_.NetConnectionID -ne "Wi-Fi" }
+
+      foreach ($adapter in $adapters) {
+         $selectAdapter.Items.Add($adapter.netconnectionid) | Out-Null
+      }
+
+      # Select the first adapter in the list and focus on the selection box
+      $selectAdapter.SelectedIndex = 0
+      $selectAdapter.Focus() | Out-Null
+   }
+   catch [Microsoft.Management.Infrastructure.CimException] {
+      [System.Windows.MessageBox]::Show("CIM error while retrieving network adapters:`n$($_.Exception.Message)", "CIM Error", "OK", "Error")
+   }
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkAdapters:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
+   }
 }
 
 # Get details of the adapters
