@@ -64,7 +64,7 @@ function checkAdapters () {
 
    try {
       # Query the adapters filtering on connected and no WiFi adapters
-      $adapters = Get-CimInstance -Classname Win32_NetworkAdapter -Filter "NetConnectionStatus = 2" | Where-Object {$_.NetConnectionID -ne "Wi-Fi" }
+      $adapters = Get-CimInstance -Classname Win32_NetworkAdapter -Filter "NetConnectionStatus = 2" | Where-Object { $_.NetConnectionID -ne "Wi-Fi" }
 
       foreach ($adapter in $adapters) {
          $selectAdapter.Items.Add($adapter.netconnectionid) | Out-Null
@@ -84,23 +84,40 @@ function checkAdapters () {
 
 # Get details of the adapters
 function getAdapterDetails ($interface) {
-   # Get index of selected interface to be used to query interface settings
-   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
-   $intDetails = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object interfaceindex -eq $intIndex.interfaceindex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
-   
-   $ipaddressTxt.Text = $intDetails.ipaddress[0]
-   $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
-   if ($intDetails.defaultipgateway.count -ne 0) {
-      $gatewayTxt.Text = $intDetails.defaultipgateway[0]
+   # Try and get the details of the adapter that is selected
+   try {
+      # Get the index of the interface
+      $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object InterfaceIndex
+      # Here is where we get the actual details of the interface using the index of the interface
+      $intDetails = Get-CimInstance -Classname Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object InterfaceIndex -eq $intIndex.InterfaceIndex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
+
+      if ($intDetails) {
+         $ipaddressTxt.Text = $intDetails.ipaddress[0]
+         $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
+         if ($intDetails.defaultipgateway.count -ne 0) {
+            $gatewayTxt.Text = $intDetails.defaultipgateway[0]
+         }
+         else {
+            $gatewayTxt.Clear()
+         }
+         if ($intDetails.dnsserversearchorder.count -ne 0) {
+            $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
+         }
+         else {
+            $dnsTxt.Clear()
+         }
+      }
+      else {
+         [System.Windows.MessageBox]::Show("No adapter configuration found for selected interface.", "Missing Data", "OK", "Warning")
+      }
+
+      
    }
-   else {
-      $gatewayTxt.Clear()
+   catch [Microsoft.Management.Infrastructure.CimException] {
+      [System.Windows.MessageBox]::Show("CIM error while retrieving network adapter details:`n$($_.Exception.Message)", "CIM Error", "OK", "Error")
    }
-   if ($intDetails.dnsserversearchorder.count -ne 0) {
-      $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
-   }
-   else {
-      $dnsTxt.Clear()
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkAdapterDetails:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
 }
 
@@ -225,7 +242,7 @@ $saveStaticBtn.Add_Click({
    })
 # $addIP = . ".\Dependencies\addIP.ps1"
 $addNewIPBtn.Add_Click({
-   . '.\Dependencies\addIP.ps1'
+      . '.\Dependencies\addIP.ps1'
    })
 
 # Reload the adapters after reload button click
