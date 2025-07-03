@@ -36,24 +36,31 @@ $dnsTxt = $window.FindName("dns")
 # Check if the adapter mode is dhcp or static
 function checkMode ($interface) {
    # Write-Host Inside checkMode
-   $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
-   if ($mode.dhcp -eq "Enabled") {
-      $dhcpOption.IsChecked = $true
-      $ipaddressTxt.IsReadOnly = $true
-      $subnetMaskTxt.IsReadOnly = $true
-      $gatewayTxt.IsReadOnly = $true
-      $dnsTxt.IsReadOnly = $true
-      $staticButtons.Visibility = "Hidden"
+
+   try {
+      $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
+      if ($mode.dhcp -eq "Enabled") {
+         $dhcpOption.IsChecked = $true
+         $ipaddressTxt.IsReadOnly = $true
+         $subnetMaskTxt.IsReadOnly = $true
+         $gatewayTxt.IsReadOnly = $true
+         $dnsTxt.IsReadOnly = $true
+         $staticButtons.Visibility = "Hidden"
+      }
+      else {
+         $staticOption.IsChecked = $true
+         $dhcpOption.IsChecked = $false
+         $ipaddressTxt.IsReadOnly = $false
+         $subnetMaskTxt.IsReadOnly = $false
+         $gatewayTxt.IsReadOnly = $false
+         $dnsTxt.IsReadOnly = $false
+         $staticButtons.Visibility = "Visible"
+      }
    }
-   else {
-      $staticOption.IsChecked = $true
-      $dhcpOption.IsChecked = $false
-      $ipaddressTxt.IsReadOnly = $false
-      $subnetMaskTxt.IsReadOnly = $false
-      $gatewayTxt.IsReadOnly = $false
-      $dnsTxt.IsReadOnly = $false
-      $staticButtons.Visibility = "Visible"
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkMode:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
+   
 }
 
 # Get all physiscal adpaters
@@ -61,38 +68,63 @@ function checkMode ($interface) {
 function checkAdapters () {
    # Clear the listbox to make sure nothing funky exists before enumerating our items
    $selectAdapter.Items.Clear()
-   foreach ($adapter in get-wmiobject win32_networkadapter -filter "netconnectionstatus = 2" | Select-Object netconnectionid) {
-      # Check if adapter is not wi-fi. There's no reason to include the Wi-Fi adapter in the list usually.
-      # I may add an option to include it in the future if the need arises
-      if ($adapter.netconnectionid -ne "Wi-Fi") {
-         $adapter | ForEach-Object { $selectAdapter.Items.Add($_.netconnectionid) } | Out-Null
-      }
-   }
 
-   # Select the first adapter in the list and focus it
-   $selectAdapter.SelectedIndex = 0
-   $selectAdapter.Focus() | Out-Null
+   try {
+      # Query the adapters filtering on connected and no WiFi adapters
+      $adapters = Get-CimInstance -Classname Win32_NetworkAdapter -Filter "NetConnectionStatus = 2" | Where-Object { $_.NetConnectionID -ne "Wi-Fi" }
+
+      foreach ($adapter in $adapters) {
+         $selectAdapter.Items.Add($adapter.netconnectionid) | Out-Null
+      }
+
+      # Select the first adapter in the list and focus on the selection box
+      $selectAdapter.SelectedIndex = 0
+      $selectAdapter.Focus() | Out-Null
+   }
+   catch [Microsoft.Management.Infrastructure.CimException] {
+      [System.Windows.MessageBox]::Show("CIM error while retrieving network adapters:`n$($_.Exception.Message)", "CIM Error", "OK", "Error")
+   }
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkAdapters:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
+   }
 }
 
 # Get details of the adapters
 function getAdapterDetails ($interface) {
-   # Get index of selected interface to be used to query interface settings
-   $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object interfaceindex
-   $intDetails = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object interfaceindex -eq $intIndex.interfaceindex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
-   
-   $ipaddressTxt.Text = $intDetails.ipaddress[0]
-   $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
-   if ($intDetails.defaultipgateway.count -ne 0) {
-      $gatewayTxt.Text = $intDetails.defaultipgateway[0]
+   # Try and get the details of the adapter that is selected
+   try {
+      # Get the index of the interface
+      $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object InterfaceIndex
+      # Here is where we get the actual details of the interface using the index of the interface
+      $intDetails = Get-CimInstance -Classname Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object InterfaceIndex -eq $intIndex.InterfaceIndex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
+
+      if ($intDetails) {
+         $ipaddressTxt.Text = $intDetails.ipaddress[0]
+         $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
+         if ($intDetails.defaultipgateway.count -ne 0) {
+            $gatewayTxt.Text = $intDetails.defaultipgateway[0]
+         }
+         else {
+            $gatewayTxt.Clear()
+         }
+         if ($intDetails.dnsserversearchorder.count -ne 0) {
+            $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
+         }
+         else {
+            $dnsTxt.Clear()
+         }
+      }
+      else {
+         [System.Windows.MessageBox]::Show("No adapter configuration found for selected interface.", "Missing Data", "OK", "Warning")
+      }
+
+      
    }
-   else {
-      $gatewayTxt.Clear()
+   catch [Microsoft.Management.Infrastructure.CimException] {
+      [System.Windows.MessageBox]::Show("CIM error while retrieving network adapter details:`n$($_.Exception.Message)", "CIM Error", "OK", "Error")
    }
-   if ($intDetails.dnsserversearchorder.count -ne 0) {
-      $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
-   }
-   else {
-      $dnsTxt.Clear()
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkAdapterDetails:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
 }
 
@@ -153,29 +185,34 @@ function setStaticIP {
 }
 
 function setMode($interface, $mode) {
-   if ($mode -eq "STATIC") {
-      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Disabled
-      $dhcpOption.IsChecked = $false
-      $ipaddressTxt.IsReadOnly = $false
-      $subnetMaskTxt.IsReadOnly = $false
-      $gatewayTxt.IsReadOnly = $false
-      $dnsTxt.IsReadOnly = $false
-      $ipaddressTxt.Clear()
-      $subnetMaskTxt.Clear()
-      $gatewayTxt.Clear()
-      $dnsTxt.Clear()
-      $subnetMaskTxt.Text = "255.255.255.0"
-   }
+   try {
+      if ($mode -eq "STATIC") {
+         Set-NetIPInterface -InterfaceAlias $interface -Dhcp Disabled
+         $dhcpOption.IsChecked = $false
+         $ipaddressTxt.IsReadOnly = $false
+         $subnetMaskTxt.IsReadOnly = $false
+         $gatewayTxt.IsReadOnly = $false
+         $dnsTxt.IsReadOnly = $false
+         $ipaddressTxt.Clear()
+         $subnetMaskTxt.Clear()
+         $gatewayTxt.Clear()
+         $dnsTxt.Clear()
+         $subnetMaskTxt.Text = "255.255.255.0"
+      }
 
-   if ($mode -eq "DHCP") {
-      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Enabled
-      # The checkmode does this already but it hangs the script trying to check the mode so for now, I'm manually setting these here
-      $dhcpOption.IsChecked = $true
-      $ipaddressTxt.IsReadOnly = $true
-      $subnetMaskTxt.IsReadOnly = $true
-      $gatewayTxt.IsReadOnly = $true
-      $dnsTxt.IsReadOnly = $true
-      getAdapterDetails $interface
+      if ($mode -eq "DHCP") {
+         Set-NetIPInterface -InterfaceAlias $interface -Dhcp Enabled
+         # The checkmode does this already but it hangs the script trying to check the mode so for now, I'm manually setting these here
+         $dhcpOption.IsChecked = $true
+         $ipaddressTxt.IsReadOnly = $true
+         $subnetMaskTxt.IsReadOnly = $true
+         $gatewayTxt.IsReadOnly = $true
+         $dnsTxt.IsReadOnly = $true
+         getAdapterDetails $interface
+      }
+   }
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in setMode:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
 }
 
@@ -217,7 +254,7 @@ $saveStaticBtn.Add_Click({
    })
 # $addIP = . ".\Dependencies\addIP.ps1"
 $addNewIPBtn.Add_Click({
-   . '.\Dependencies\addIP.ps1'
+      . '.\Dependencies\addIP.ps1'
    })
 
 # Reload the adapters after reload button click
