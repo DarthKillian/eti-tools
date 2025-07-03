@@ -36,24 +36,31 @@ $dnsTxt = $window.FindName("dns")
 # Check if the adapter mode is dhcp or static
 function checkMode ($interface) {
    # Write-Host Inside checkMode
-   $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
-   if ($mode.dhcp -eq "Enabled") {
-      $dhcpOption.IsChecked = $true
-      $ipaddressTxt.IsReadOnly = $true
-      $subnetMaskTxt.IsReadOnly = $true
-      $gatewayTxt.IsReadOnly = $true
-      $dnsTxt.IsReadOnly = $true
-      $staticButtons.Visibility = "Hidden"
+
+   try {
+      $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
+      if ($mode.dhcp -eq "Enabled") {
+         $dhcpOption.IsChecked = $true
+         $ipaddressTxt.IsReadOnly = $true
+         $subnetMaskTxt.IsReadOnly = $true
+         $gatewayTxt.IsReadOnly = $true
+         $dnsTxt.IsReadOnly = $true
+         $staticButtons.Visibility = "Hidden"
+      }
+      else {
+         $staticOption.IsChecked = $true
+         $dhcpOption.IsChecked = $false
+         $ipaddressTxt.IsReadOnly = $false
+         $subnetMaskTxt.IsReadOnly = $false
+         $gatewayTxt.IsReadOnly = $false
+         $dnsTxt.IsReadOnly = $false
+         $staticButtons.Visibility = "Visible"
+      }
    }
-   else {
-      $staticOption.IsChecked = $true
-      $dhcpOption.IsChecked = $false
-      $ipaddressTxt.IsReadOnly = $false
-      $subnetMaskTxt.IsReadOnly = $false
-      $gatewayTxt.IsReadOnly = $false
-      $dnsTxt.IsReadOnly = $false
-      $staticButtons.Visibility = "Visible"
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in checkMode:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
+   
 }
 
 # Get all physiscal adpaters
@@ -178,29 +185,34 @@ function setStaticIP {
 }
 
 function setMode($interface, $mode) {
-   if ($mode -eq "STATIC") {
-      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Disabled
-      $dhcpOption.IsChecked = $false
-      $ipaddressTxt.IsReadOnly = $false
-      $subnetMaskTxt.IsReadOnly = $false
-      $gatewayTxt.IsReadOnly = $false
-      $dnsTxt.IsReadOnly = $false
-      $ipaddressTxt.Clear()
-      $subnetMaskTxt.Clear()
-      $gatewayTxt.Clear()
-      $dnsTxt.Clear()
-      $subnetMaskTxt.Text = "255.255.255.0"
-   }
+   try {
+      if ($mode -eq "STATIC") {
+         Set-NetIPInterface -InterfaceAlias $interface -Dhcp Disabled
+         $dhcpOption.IsChecked = $false
+         $ipaddressTxt.IsReadOnly = $false
+         $subnetMaskTxt.IsReadOnly = $false
+         $gatewayTxt.IsReadOnly = $false
+         $dnsTxt.IsReadOnly = $false
+         $ipaddressTxt.Clear()
+         $subnetMaskTxt.Clear()
+         $gatewayTxt.Clear()
+         $dnsTxt.Clear()
+         $subnetMaskTxt.Text = "255.255.255.0"
+      }
 
-   if ($mode -eq "DHCP") {
-      Set-NetIPInterface -InterfaceAlias $interface -Dhcp Enabled
-      # The checkmode does this already but it hangs the script trying to check the mode so for now, I'm manually setting these here
-      $dhcpOption.IsChecked = $true
-      $ipaddressTxt.IsReadOnly = $true
-      $subnetMaskTxt.IsReadOnly = $true
-      $gatewayTxt.IsReadOnly = $true
-      $dnsTxt.IsReadOnly = $true
-      getAdapterDetails $interface
+      if ($mode -eq "DHCP") {
+         Set-NetIPInterface -InterfaceAlias $interface -Dhcp Enabled
+         # The checkmode does this already but it hangs the script trying to check the mode so for now, I'm manually setting these here
+         $dhcpOption.IsChecked = $true
+         $ipaddressTxt.IsReadOnly = $true
+         $subnetMaskTxt.IsReadOnly = $true
+         $gatewayTxt.IsReadOnly = $true
+         $dnsTxt.IsReadOnly = $true
+         getAdapterDetails $interface
+      }
+   }
+   catch {
+      [System.Windows.MessageBox]::Show("Unexpected error in setMode:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
    }
 }
 
