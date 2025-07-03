@@ -1,8 +1,21 @@
 ﻿Add-Type -AssemblyName PresentationFramework
 
-# Load dependencies
-<# $dependencyPath = "$($pwd)\Dependencies"
-Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName } #>
+# Load dependency path
+$dependencyPath = "$($pwd)\Dependencies"
+
+# Check for helper script then load it. If it is missing, throw an exception and gracefully exit
+try {
+   if (-Not (Test-Path $dependencyPath\netproHelpers.ps1)) {
+      throw "netproHelpers.ps1 not found"
+   }
+
+   . "$dependencyPath\netproHelpers.ps1"
+}
+catch {
+   [System.Windows.MessageBox]::Show("Missing core dependency:`n$($_.Exception.Message)", "Missing Dependency", "OK", "Error")
+   exit
+}
+# Get-ChildItem -Path $dependencyPath -Filter *.ps1 | ForEach-Object {. $_.FullName }
 
 # Set xaml path for window
 $xamlPath = "$($pwd)\xaml\MainWindow.xaml"
