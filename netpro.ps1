@@ -48,8 +48,6 @@ $dnsTxt = $window.FindName("dns")
 
 # Check if the adapter mode is dhcp or static
 function checkMode ($interface) {
-   # Write-Host Inside checkMode
-
    try {
       $mode = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object -ExpandProperty NetIPv4Interface | Select-Object dhcp
       if ($mode.dhcp -eq "Enabled") {
@@ -102,46 +100,24 @@ function checkAdapters () {
    }
 }
 
-# Get details of the adapters
-function getAdapterDetails ($interface) {
-   # Try and get the details of the adapter that is selected
-   try {
-      # Get the index of the interface
-      $intIndex = Get-NetIPConfiguration -InterfaceAlias $interface | Select-Object InterfaceIndex
-      # Here is where we get the actual details of the interface using the index of the interface
-      $intDetails = Get-CimInstance -Classname Win32_NetworkAdapterConfiguration | Where-Object IPEnabled | Where-Object InterfaceIndex -eq $intIndex.InterfaceIndex | Select-Object ipaddress, ipsubnet, defaultipgateway, dnsserversearchorder
-
-      if ($intDetails) {
-         $ipaddressTxt.Text = $intDetails.ipaddress[0]
-         $subnetMaskTxt.Text = $intDetails.ipsubnet[0]
-         if ($intDetails.defaultipgateway.count -ne 0) {
-            $gatewayTxt.Text = $intDetails.defaultipgateway[0]
-         }
-         else {
-            $gatewayTxt.Clear()
-         }
-         if ($intDetails.dnsserversearchorder.count -ne 0) {
-            $dnsTxt.Text = $intDetails.dnsserversearchorder[0]
-         }
-         else {
-            $dnsTxt.Clear()
-         }
-      }
-      else {
-         [System.Windows.MessageBox]::Show("No adapter configuration found for selected interface.", "Missing Data", "OK", "Warning")
-      }
-
-      
+# Load the details of the adapters in the text boxes
+function loadInterfaceDetails ($interface) {
+   $adapterDetails = getAdapterDetails $interface
+   $ipaddressTxt.Text = $adapterDetails.ip
+   $subnetMaskTxt.Text = $adapterDetails.mask
+   if ($adapterDetails.gateway.count -ne 0) {
+      $gatewayTxt.Text = $adapterDetails.gateway
    }
-   catch [Microsoft.Management.Infrastructure.CimException] {
-      [System.Windows.MessageBox]::Show("CIM error while retrieving network adapter details:`n$($_.Exception.Message)", "CIM Error", "OK", "Error")
+   else {
+      $gatewayTxt.Clear()
    }
-   catch {
-      [System.Windows.MessageBox]::Show("Unexpected error in checkAdapterDetails:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
+   if ($adapterDetails.dns.count -ne 0) {
+      $dnsTxt.Text = $adapterDetails.dns
+   }
+   else {
+      $dnsTxt.Clear()
    }
 }
-
-$ButtonType = [System.Windows.MessageBoxButton]::Ok
 
 function setStaticIP {
    Param($interface, $ip, $subnet, $gateway, $dns)
@@ -149,10 +125,9 @@ function setStaticIP {
    if ($ip -and $subnet) {
       try {
          [ipaddress] $ip | Out-Null
-         [ipaddress] $subnet | Out-Null
       }
       catch {
-         $message = "Invalid IP or Subnet Mask"
+         $message = "Invalid IP Address. Please verify that you have entered a proper IPV4 IP Address."
       }
 
       $ipCmd = netsh int ip set address "$($interface)" static $ip $subnet
@@ -169,7 +144,7 @@ function setStaticIP {
       }
       catch {
          $message = "Invalid gateway"
-         [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
+         [System.Windows.MessageBox]::Show($message, "Warning", "OK")
       }
    }
    else {
@@ -221,7 +196,7 @@ function setMode($interface, $mode) {
          $subnetMaskTxt.IsReadOnly = $true
          $gatewayTxt.IsReadOnly = $true
          $dnsTxt.IsReadOnly = $true
-         getAdapterDetails $interface
+         loadInterfaceDetails $interface
       }
    }
    catch {
@@ -242,7 +217,7 @@ else {
 $selectAdapter.Add_SelectionChanged({
       if ($selectAdapter.Items.Count -ne 0) {
          checkMode $selectAdapter.SelectedItem
-         getAdapterDetails $selectAdapter.SelectedItem
+         loadInterfaceDetails $selectAdapter.SelectedItem
          $noAdapters.Visibility = "Hidden"
          $adapterOptions.Visibility = "Visible"
       }
