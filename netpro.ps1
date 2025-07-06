@@ -146,6 +146,33 @@ function setStaticIP {
          $oldIP = getAdapterDetails $interface
          $ipExists = Test-IPExists $interface $ip
          $cidr = Convert-SubnetMaskToCIDR $subnet
+
+         try {
+            # Check if the IP is still the same or not and if it exists, remove it from the stack
+            if ($oldIP.ip -ne $ip) {
+               if ($ipExists) {
+                  # Remove the old IP first
+                  Remove-NetIPAddress -InterfaceAlias $interface -IPAddress $oldIP.ip -Confirm:$false
+               }
+            } elseif ($ipExists) {
+               # If the IP has not changed, we are assuming that we are just updating values other than the IP
+               if ($gateway) {
+                  $ipParams['gateway'] = $gateway
+               }
+            } else {
+               throw "Unable to apply static IP: IP state mismatch or adapter is unresponsive."
+            }
+
+            if ($gateway) {
+               $ipParams['gateway'] = $gateway
+            }
+            if ($dns) {
+               $ipParams = $dns
+            }
+         } catch {
+            [System.Windows.MessageBox]::Show("IP configuration failed:`n$($_.Exception.Message)", "Network Error", "OK", "Error")
+         }
+
       }
       else {
          throw "IP and Subnet Mask are required"

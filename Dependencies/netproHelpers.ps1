@@ -81,14 +81,6 @@ function Test-IPExists {
         [string] $ip
     )
     # Check if the IP exists we have already validated the input before passing to this helper function so we don't need to do it here
-    try {
-        $existingIP = Get-NetIPAddress -InterfaceAlias $interface -IPAddress $ip
-
-        if ($existingIP) {
-            return $true
-        }
-    }
-    catch {
-        [System.Windows.MessageBox]::Show("Unexpected error in Test-IPExists:`n$($_.Exception.Message)", "Unhandled Exception", "OK", "Error")
-    }
+    $existingIP = Get-NetIPAddress -InterfaceAlias $interface -IPAddress $ip -ErrorAction SilentlyContinue
+    return [bool]$existingIP
 }
