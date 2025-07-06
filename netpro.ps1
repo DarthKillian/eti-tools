@@ -136,16 +136,16 @@ function setStaticIP {
 
             $ipParams['IPAddress'] = $ip
             $ipParams['Subnet'] = $subnet
-
-            # Lookup current IP and see if it is being changed
-            $oldIP = getAdapterDetails $interface
-
          }
          catch {
             throw "Invalid IP Address or Subnet Mask. Please verify that you have entered a proper IPV4 IP Address and Subnet Mask."
             return
          }
          
+         # Lookup current IP and see if it is being changed
+         $oldIP = getAdapterDetails $interface
+         $ipExists = Test-IPExists $interface $ip
+         $cidr = Convert-SubnetMaskToCIDR $subnet
       }
       else {
          throw "IP and Subnet Mask are required"
