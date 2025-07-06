@@ -25,6 +25,9 @@ if (Test-Path $xamlPath) {
    $loadXaml = Get-Content $xamlPath -Raw 
 }
 
+# Leaving this as an example for later implementation of running pings directly
+# Start-Process cmd -ArgumentList {/c "ping google.com -t"}
+
 # Load xaml
 [xml]$xaml = $loadXaml
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
@@ -36,8 +39,8 @@ $staticOption = $window.FindName("staticOption")
 $reloadBtn = $window.FindName("reload")
 $staticButtons = $window.FindName("staticButtons")
 $adapterOptions = $window.FindName("adapterOptions")
-$noAdapters = $window.findName("noAdapters")
-$saveStaticBtn = $window.findName("saveStaticBtn")
+$noAdapters = $window.FindName("noAdapters")
+$saveStaticBtn = $window.FindName("saveStaticBtn")
 $addNewIPBtn = $window.FindName("addNewIPBtn")
 
 # Get text boxes
@@ -121,21 +124,37 @@ function loadInterfaceDetails ($interface) {
 
 function setStaticIP {
    Param($interface, $ip, $subnet, $gateway, $dns)
-
-   if ($ip -and $subnet) {
-      try {
-         [ipaddress] $ip | Out-Null
-      }
-      catch {
-         $message = "Invalid IP Address. Please verify that you have entered a proper IPV4 IP Address."
-      }
-
-      $ipCmd = netsh int ip set address "$($interface)" static $ip $subnet
-
+   $ipParams = @{
+      Interface = $interface
    }
-   else {
-      $message = "IP Address and Subnet Mask are required"
+
+   try {
+      if ($ip -and $subnet) {
+         try {
+            [ipaddress] $ip | Out-Null
+            [ipaddress] $subnet | Out-Null
+
+            $ipParams['IPAddress'] = $ip
+            $ipParams['Subnet'] = $subnet
+
+            # Lookup current IP and see if it is being changed
+            $oldIP = getAdapterDetails $interface
+
+         }
+         catch {
+            throw "Invalid IP Address or Subnet Mask. Please verify that you have entered a proper IPV4 IP Address and Subnet Mask."
+            return
+         }
+         
+      }
+      else {
+         throw "IP and Subnet Mask are required"
+      }
    }
+   catch {
+      [System.Windows.MessageBox]::Show("Invalid entry:`n$($_.Exception.Message)", "Invalid Entry", "OK", "Error")
+   }
+
    # If a gateway is provided, set the gateway
    if ($gateway) {
       try {
