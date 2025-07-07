@@ -125,7 +125,7 @@ function loadInterfaceDetails ($interface) {
 function setStaticIP {
    Param($interface, $ip, $subnet, $gateway, $dns)
    $ipParams = @{
-      Interface = $interface
+      InterfaceAlias = $interface
    }
 
    try {
@@ -134,88 +134,58 @@ function setStaticIP {
             [ipaddress] $ip | Out-Null
             [ipaddress] $subnet | Out-Null
 
+            # Lookup current IP and see if it is being changed
+            $oldIP = getAdapterDetails $interface
+            $ipExists = Test-IPExists $interface $ip
+            $cidr = Convert-SubnetMaskToCIDR $subnet
+
             $ipParams['IPAddress'] = $ip
-            $ipParams['Subnet'] = $subnet
+            $ipParams['PrefixLength'] = $cidr
          }
          catch {
             throw "Invalid IP Address or Subnet Mask. Please verify that you have entered a proper IPV4 IP Address and Subnet Mask."
             return
          }
          
-         # Lookup current IP and see if it is being changed
-         $oldIP = getAdapterDetails $interface
-         $ipExists = Test-IPExists $interface $ip
-         $cidr = Convert-SubnetMaskToCIDR $subnet
-
          try {
             # Check if the IP is still the same or not and if it exists, remove it from the stack
             if ($oldIP.ip -ne $ip) {
-               if ($ipExists) {
-                  # Remove the old IP first
-                  Remove-NetIPAddress -InterfaceAlias $interface -IPAddress $oldIP.ip -Confirm:$false
-               }
-            } elseif ($ipExists) {
+               # Remove the old IP first
+               Remove-NetIPAddress -InterfaceAlias $interface -IPAddress $oldIP.ip -Confirm:$false
+               New-NetIPAddress @ipParams
+            }
+            elseif ($ipExists) {
                # If the IP has not changed, we are assuming that we are just updating values other than the IP
-               if ($gateway) {
-                  $ipParams['gateway'] = $gateway
-               }
-            } else {
+               Set-NetIPAddress @ipParams
+            }
+            else {
                throw "Unable to apply static IP: IP state mismatch or adapter is unresponsive."
             }
-
-            if ($gateway) {
-               $ipParams['gateway'] = $gateway
-            }
-            if ($dns) {
-               $ipParams = $dns
-            }
-         } catch {
+         }
+         catch {
             [System.Windows.MessageBox]::Show("IP configuration failed:`n$($_.Exception.Message)", "Network Error", "OK", "Error")
          }
-
       }
       else {
          throw "IP and Subnet Mask are required"
+      }
+
+      if ($gateway) {
+         try {
+            [ipaddress] $gateway | Out-Null
+            $ipParams['DefaultGateway'] = $gateway
+            
+         }
+         catch {
+            throw "Invalid gateway. Please verify that you have entered a proper IPV4 gateway."
+            return
+         }
       }
    }
    catch {
       [System.Windows.MessageBox]::Show("Invalid entry:`n$($_.Exception.Message)", "Invalid Entry", "OK", "Error")
    }
 
-   # If a gateway is provided, set the gateway
-   if ($gateway) {
-      try {
-         [ipaddress] $gateway | Out-Null
-         $ipCmd = netsh int ip set address "$($interface)" static $ip $subnet $gateway
-      }
-      catch {
-         $message = "Invalid gateway"
-         [System.Windows.MessageBox]::Show($message, "Warning", "OK")
-      }
-   }
-   else {
-      $ipCmd = netsh int ipv4 set address "$($interface)" static $ip $subnet
-   }
-
-   # Set Static IP
-   & cmd.exe /c $ipCmd
-   if ($LASTEXITCODE -ne 0) {
-      [System.Windows.MessageBox]::Show("There was an error setting the IP address on $interface. Please report this bug.", "Warning", $ButtonType)
-   }
-    
-   if ($dns) {
-      try {
-         [ipaddress] $dns | Out-Null
-         & cmd.exe /c netsh int ipv4 set dnsservers "$($interface)" static $dns primary
-      }
-      catch {
-         $message = "Invalid DNS"
-         [System.Windows.MessageBox]::Show($message, "Warning", $ButtonType)
-      }
-   }
-   else {
-      & cmd.exe /c netsh int ipv4 delete dnsservers "$($interface)" all
-   }
 }
 
 function setMode($interface, $mode) {
