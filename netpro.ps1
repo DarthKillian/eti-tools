@@ -156,6 +156,19 @@ function setStaticIP {
             }
             elseif ($ipExists) {
                # If the IP has not changed, we are assuming that we are just updating values other than the IP
+               if ($gateway) {
+                  try {
+                     [ipaddress] $gateway | Out-Null
+                     Remove-NetRoute -InterfaceAlias $interface -Confirm:$false
+                  }
+                  catch {
+                     throw "Invalid gateway. Please verify that you have entered a proper IPV4 gateway."
+                     return
+                  }
+               } else {
+                  $ipParams['DefaultGateway'] = $gateway
+                  Remove-NetRoute -InterfaceAlias $interface -Confirm:$false
+               }
                Set-NetIPAddress @ipParams
             }
             else {
@@ -168,18 +181,6 @@ function setStaticIP {
       }
       else {
          throw "IP and Subnet Mask are required"
-      }
-
-      if ($gateway) {
-         try {
-            [ipaddress] $gateway | Out-Null
-            $ipParams['DefaultGateway'] = $gateway
-            
-         }
-         catch {
-            throw "Invalid gateway. Please verify that you have entered a proper IPV4 gateway."
-            return
-         }
       }
    }
    catch {
