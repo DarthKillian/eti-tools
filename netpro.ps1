@@ -21,7 +21,7 @@ $selectAdapter = $window.FindName("selectAdapter")
 $dhcpOption = $window.FindName("dhcpOption")
 $staticOption = $window.FindName("staticOption")
 $reloadBtn = $window.FindName("reload")
-$staticButtons = $window.FindName("staticButtons")
+$staticButtons = $window.FindName("saveStaticBtn"), $window.FindName("addNewIPBtn")
 $adapterOptions = $window.FindName("adapterOptions")
 $noAdapters = $window.findName("noAdapters")
 $saveStaticBtn = $window.findName("saveStaticBtn")
@@ -45,7 +45,7 @@ function checkMode ($interface) {
          $subnetMaskTxt.IsReadOnly = $true
          $gatewayTxt.IsReadOnly = $true
          $dnsTxt.IsReadOnly = $true
-         $staticButtons.Visibility = "Hidden"
+         $staticButtons | ForEach-Object { $_.Visibility = "Hidden" }
       }
       else {
          $staticOption.IsChecked = $true
@@ -54,7 +54,7 @@ function checkMode ($interface) {
          $subnetMaskTxt.IsReadOnly = $false
          $gatewayTxt.IsReadOnly = $false
          $dnsTxt.IsReadOnly = $false
-         $staticButtons.Visibility = "Visible"
+         $staticButtons | ForEach-Object { $_.Visibility = "Visible" }
       }
    }
    catch {
@@ -241,12 +241,12 @@ $selectAdapter.Add_SelectionChanged({
 
 $dhcpOption.Add_Click({
       setMode $selectAdapter.SelectedItem "DHCP"
-      $staticButtons.Visibility = "Hidden"
+      $staticButtons | ForEach-Object { $_.Visibility = "Hidden" }
    })
 
 $staticOption.Add_Click({
       setMode $selectAdapter.SelectedItem "STATIC"
-      $staticButtons.Visibility = "Visible"
+      $staticButtons | ForEach-Object { $_.Visibility = "Visible" }
    })
 
 $saveStaticBtn.Add_Click({

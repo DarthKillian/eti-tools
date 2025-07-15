@@ -1,111 +1,78 @@
 ﻿<Window
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Height="400" Width="600"
+    Height="300" Width="700"
     Background="#57697f"
     Title = "NetPro">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="50"/>
-        </Grid.RowDefinitions>
+    <Grid Margin="5">
         
-        <Grid Grid.Row="0" Background="#2483eb">
-            <StackPanel Orientation="Horizontal">
-                <Label Foreground="#ffffff" Content="Select Adapter" VerticalAlignment="Center" Padding="15,0,0,0"/>
-                <ListBox x:Name="selectAdapter" Margin="5,0,0,0" Width="200" Height="Auto" MaxHeight="40" >
-                </ListBox>
-                <Button x:Name="reload" Margin="10,0,0,0" Width="100" Height="30" HorizontalAlignment="Right">Refresh Adapters</Button>
-            </StackPanel>
-        </Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Adapter column -->
+        <StackPanel Grid.Column="0">
+            <Label Content="Select Adapter" Foreground="White" FontSize="14" FontWeight="Bold" Margin="5"/>
+            <ListBox x:Name="selectAdapter" Margin="5" Height="170" Width="160"/>
+            <Button x:Name="reload" Content="Refresh Adapters" HorizontalAlignment="Stretch" Margin="5" Padding="5"/>
+        </StackPanel>
         
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Grid x:Name="adapterOptions" Grid.Column="0" Margin="10,10,5,10" Visibility="Visible">
-                <StackPanel HorizontalAlignment="Center">
-                    <Label Content="Properties" Foreground="#ffffff" />
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Label Padding="5,0,0,0" Foreground="#ffffff">Set Interface Mode</Label>
-                        <RadioButton x:Name="dhcpOption" Foreground="#ffffff" Margin="5,0,0,0">DHCP</RadioButton>
-                        <RadioButton x:Name="staticOption" Foreground="#ffffff" Margin="8,0,0,0">Static</RadioButton>
-                    </StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"></ColumnDefinition>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"></RowDefinition>
-                            <RowDefinition Height="*"></RowDefinition>
-                            <RowDefinition Height="*"></RowDefinition>
-                            <RowDefinition Height="*"></RowDefinition>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Column="0">
-                            <StackPanel>
-                                <Grid Grid.Row="0">
-                                    <Label Foreground="#ffffff">IP Address</Label>
-                                </Grid>
-                                <Grid Grid.Row="1">
-                                    <Label Foreground="#ffffff" Margin="0,2,0,0">Subnet Mask</Label>
-                                </Grid>
-                                <Grid Grid.Row="2">
-                                    <Label Foreground="#ffffff" Margin="0,2,0,0">Gateway</Label>
-                                </Grid>
-                                <Grid Grid.Row="3">
-                                    <Label Foreground="#ffffff" Margin="0,5,0,0">DNS</Label>
-                                </Grid>
-                            </StackPanel>
-                        </Grid>
-                        <Grid Grid.Column="1">
-                            <StackPanel>
-                                <Grid Grid.Row="0">
-                                    <TextBox x:Name="ipaddress" Width="100" Margin="0,5,0,0"></TextBox>
-                                </Grid>
-                                <Grid Grid.Row="1">
-                                    <TextBox x:Name="subnet_mask" Width="100" Margin="0,10,0,0"></TextBox>
-                                </Grid>
-                                <Grid Grid.Row="2">
-                                    <TextBox x:Name="gateway" Width="100" Margin="0,10,0,0"></TextBox>
-                                </Grid>
-                                <Grid Grid.Row="3">
-                                    <TextBox x:Name="dns" Width="100" Margin="0,10,0,0"></TextBox>
-                                </Grid>
-                            </StackPanel>
-                        </Grid>
-                    </Grid>
-                    <StackPanel Visibility="Hidden" HorizontalAlignment="Center" Orientation="Horizontal" x:Name="staticButtons" Margin="0,10,0,0">
-                        <Button x:Name="saveStaticBtn" Width="100">Save</Button>
-                        <Button x:Name="addNewIPBtn" Width="100">Add IP Address</Button>
-                    </StackPanel>
-                </StackPanel>
-                
-            </Grid>
+        <!-- Properties column -->
+        <StackPanel Grid.Column="1" x:Name="adapterOptions">
+            <Label Content="Properties" Foreground="White" FontSize="14" FontWeight="Bold" Margin="5"/>
             
-            <Grid Grid.Column="1" Margin="5,10,10,10">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                    </Grid.RowDefinitions>
-                </Grid>
-                <Grid Grid.Row="0">
-                    <StackPanel HorizontalAlignment="Center">
-                        <Label Foreground="#ffffff">Status</Label>
-                        <StackPanel Margin="0,10,0,0">
-                            <TextBox x:Name="noAdapters" Visibility="Hidden" IsReadOnly="True" BorderThickness="0" TextWrapping="WrapWithOverflow" Height="100" Background="#57697f" Foreground="#ffffff">No adapters connected. Please connect an adapter and click the "Refresh Adapters" button</TextBox>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-                <Grid Grid.Row="1">
-                    
-                </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Set Interface Mode -->
+                <Label Grid.Row="0" Grid.Column="0" Content="Set Interface Mode" Foreground="White" Margin="5"/>
+                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton Content="DHCP" x:Name="dhcpOption" Foreground="White" Margin="5"/>
+                    <RadioButton Content="Static" x:Name="staticOption" Foreground="White" Margin="5"/>
+                </StackPanel>
+
+                <!-- IP Address -->
+                <Label Grid.Row="1" Grid.Column="0" Content="IP Address" Foreground="White" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="ipaddress" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Margin="5"/>
+
+                <!-- Subnet Mask -->
+                <Label Grid.Row="2" Grid.Column="0" Content="Subnet Mask" Foreground="White" Margin="5"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="subnet_mask" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Margin="5"/>
+
+                <!-- Gateway -->
+                <Label Grid.Row="3" Grid.Column="0" Content="Gateway" Foreground="White" Margin="5"/>
+                <TextBox Grid.Row="3" Grid.Column="1" x:Name="gateway" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Margin="5"/>
+
+                <!-- DNS -->
+                <Label Grid.Row="4" Grid.Column="0" Content="DNS" Foreground="White" Margin="5"/>
+                <TextBox Grid.Row="4" Grid.Column="1" x:Name="dns" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Margin="5"/>
+
+                <!-- Static buttons -->
+                <Button Grid.Row="5" Grid.Column="0" Content="Save" x:Name="saveStaticBtn" HorizontalAlignment="Stretch" Margin="5" Padding="5"/>
+                <Button Grid.Row="5" Grid.Column="1" Content="Add IP Address" x:Name="addNewIPBtn" HorizontalAlignment="Stretch" Margin="5" Padding="5"/>
             </Grid>
-        </Grid>
+        </StackPanel>
+
+        <!-- Status column -->
+        <StackPanel Grid.Column="2">
+            <Label Content="Status" Foreground="White" FontSize="14" FontWeight="Bold" Margin="5"/>
+            <TextBox x:Name="noAdapters" Visibility="Hidden" IsReadOnly="True" BorderThickness="0" TextWrapping="WrapWithOverflow" Height="100" Background="#57697f" Foreground="#ffffff">No adapters connected. Please connect an adapter and click the "Refresh Adapters" button</TextBox>
+        </StackPanel>
         
     </Grid>
 </Window>
